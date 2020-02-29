@@ -1,27 +1,31 @@
 package logging
 
 import (
+	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 // LoggerHandler creates a logger handler
 type LoggerHandler struct {
-	name   string
-	logger *logrus.Logger
-	next   http.Handler
+	*Logger
+	name string
+	next http.Handler
+	raw  bool
 }
 
 // NewLoggerHandler returns the given http.Handler with the logger integrated.
 func NewLoggerHandler(name string, logger *Logger, next http.Handler) http.Handler {
 	h := RequestID(logger.GetTraceHeader())
 	return h(&LoggerHandler{
+		Logger: logger,
 		name:   name,
-		logger: logger.GetImpl(),
 		next:   next,
+		raw:    logger.options.LogResponses,
 	})
 }
 
@@ -29,8 +33,13 @@ func NewLoggerHandler(name string, logger *Logger, next http.Handler) http.Handl
 // custom http.ResponseWriter that records the response code and the number of
 // bytes sent.
 func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var rw ResponseLogger
 	t := time.Now()
-	rw := NewResponseLogger(w)
+	if l.raw {
+		rw = NewRawResponseLogger(w)
+	} else {
+		rw = NewResponseLogger(w)
+	}
 	l.next.ServeHTTP(rw, r)
 	d := time.Since(t)
 	l.writeEntry(rw, r, t, d)
@@ -68,33 +77,54 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 
 	status := w.StatusCode()
 
-	fields := logrus.Fields{
-		"request-id":     reqID,
-		"remote-address": addr,
-		"name":           l.name,
-		"user-id":        user,
-		"time":           t.Format(time.RFC3339),
-		"duration-ns":    d.Nanoseconds(),
-		"duration":       d.String(),
-		"method":         r.Method,
-		"path":           uri,
-		"protocol":       r.Proto,
-		"status":         status,
-		"size":           w.Size(),
-		"referer":        r.Referer(),
-		"user-agent":     r.UserAgent(),
+	fields := []zap.Field{
+		zap.String("request-id", reqID),
+		zap.String("remote-address", addr),
+		zap.String("name", l.name),
+		zap.String("time", t.Format(time.RFC3339)),
+		zap.Duration("duration", d),
+		zap.Int64("duration-ns", d.Nanoseconds()),
+		zap.String("method", r.Method),
+		zap.String("path", uri),
+		zap.String("protocol", r.Proto),
+		zap.Int("status", status),
+		zap.Int("size", w.Size()),
+		zap.String("referer", r.Referer()),
+		zap.String("user-agent", r.UserAgent()),
 	}
 
-	for k, v := range w.Fields() {
-		fields[k] = v
+	if user != "" {
+		fields = append(fields, zap.String("user-id", user))
 	}
+
+	if l.options.LogRequests {
+		if b, err := httputil.DumpRequest(r, true); err == nil {
+			fields = append(fields, zap.Binary("request", b))
+		}
+	}
+
+	if rw, ok := w.(RawResponseLogger); ok {
+		fields = append(fields, zap.Binary("response", rw.Response()))
+	}
+
+	var message string
+	v, ok := w.Field("message")
+	if ok {
+		if message, ok = v.(string); !ok {
+			message = fmt.Sprint(v)
+		}
+	}
+
+	// for k, v := range w.Fields() {
+	// 	fields[k] = v
+	// }
 
 	switch {
 	case status < http.StatusBadRequest:
-		l.logger.WithFields(fields).Info()
+		l.Info(message, fields...)
 	case status < http.StatusInternalServerError:
-		l.logger.WithFields(fields).Warn()
+		l.Warn(message, fields...)
 	default:
-		l.logger.WithFields(fields).Error()
+		l.Error(message, fields...)
 	}
 }

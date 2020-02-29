@@ -2,6 +2,7 @@ package logging
 
 import (
 	"bufio"
+	"bytes"
 	"net"
 	"net/http"
 )
@@ -15,17 +16,39 @@ type ResponseLogger interface {
 	StatusCode() int
 	Fields() map[string]interface{}
 	WithFields(map[string]interface{})
+	Field(key string) (interface{}, bool)
 }
 
-// NewResponseLogger wraps the given response writer with methods to capture
-// the status code, the number of bytes written, and methods to add new log
-// entries. It won't wrap the response writer if it's already a
-// ResponseLogger.
+// ResponseLogger defines an interface that a responseWrite can implement to
+// support the capture of the status code, the number of bytes written and
+// extra log entry fields.
+type RawResponseLogger interface {
+	ResponseLogger
+	Response() []byte
+}
+
+// NewResponseLogger wraps the given response writer with methods to capture the
+// status code, the number of bytes written, and methods to add new log entries.
+// It won't wrap the response writer if it's already a ResponseLogger.
 func NewResponseLogger(w http.ResponseWriter) ResponseLogger {
 	if rw, ok := w.(ResponseLogger); ok {
 		return rw
 	}
 	return wrapLogger(w)
+}
+
+// NewRawResponseLogger wraps the given response writer with the methods to
+// capture the status code, the bytes written, and methods to add new log
+// entries. It won't wrap the response writer if it's already a
+// RawResponseLogger.
+func NewRawResponseLogger(w http.ResponseWriter) RawResponseLogger {
+	if rw, ok := w.(RawResponseLogger); ok {
+		return rw
+	}
+	return &rwDefaultRaw{
+		ResponseLogger: wrapLogger(w),
+		response:       new(bytes.Buffer),
+	}
 }
 
 func wrapLogger(w http.ResponseWriter) (rw ResponseLogger) {
@@ -49,6 +72,21 @@ type rwDefault struct {
 	fields map[string]interface{}
 }
 
+type rwDefaultRaw struct {
+	ResponseLogger
+	response *bytes.Buffer
+}
+
+func (r *rwDefaultRaw) Response() []byte {
+	return r.response.Bytes()
+}
+
+func (r *rwDefaultRaw) Write(p []byte) (n int, err error) {
+	r.response.Write(p)
+	_, err = r.ResponseLogger.Write(p)
+	return
+}
+
 func (r *rwDefault) Header() http.Header {
 	return r.ResponseWriter.Header()
 }
@@ -70,6 +108,11 @@ func (r *rwDefault) Size() int {
 
 func (r *rwDefault) StatusCode() int {
 	return r.code
+}
+
+func (r *rwDefault) Field(key string) (v interface{}, ok bool) {
+	v, ok = r.fields[key]
+	return
 }
 
 func (r *rwDefault) Fields() map[string]interface{} {
