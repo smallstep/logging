@@ -11,6 +11,7 @@ type options struct {
 	TraceHeader  string `json:"traceHeader"`
 	LogRequests  bool   `json:"logRequests"`
 	LogResponses bool   `json:"logResponses"`
+	TimeFormat   string `json:"timeFormat"`
 }
 
 func defaultOptions() *options {
@@ -54,6 +55,14 @@ func WithFormatText() Option {
 func WithFormatJSON() Option {
 	return func(o *options) error {
 		o.Format = "json"
+		return nil
+	}
+}
+
+// WithTimeFormat sets a specific format for the time fields.
+func WithTimeFormat(format string) Option {
+	return func(o *options) error {
+		o.TimeFormat = format
 		return nil
 	}
 }

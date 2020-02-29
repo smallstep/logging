@@ -18,17 +18,19 @@ type LoggerHandler struct {
 	next         http.Handler
 	logRequests  bool
 	logResponses bool
+	timeFormat   string
 }
 
 // NewLoggerHandler returns the given http.Handler with the logger integrated.
 func Middleware(logger *logging.Logger, next http.Handler) http.Handler {
-	h := logging.RequestID(logger.GetTraceHeader())
+	h := logging.RequestID(logger.TraceHeader())
 	return h(&LoggerHandler{
 		Logger:       logger,
 		name:         logger.Name(),
 		next:         next,
 		logRequests:  logger.LogRequests(),
 		logResponses: logger.LogResponses(),
+		timeFormat:   logger.TimeFormat(),
 	})
 }
 
@@ -78,7 +80,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 		zap.String("name", l.name),
 		zap.String("request-id", reqID),
 		zap.String("remote-address", addr),
-		zap.String("time", t.Format(time.RFC3339)),
+		zap.String("time", t.Format(l.timeFormat)),
 		zap.Duration("duration", d),
 		zap.Int64("duration-ns", d.Nanoseconds()),
 		zap.String("method", r.Method),

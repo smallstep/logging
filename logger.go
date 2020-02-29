@@ -3,6 +3,7 @@ package logging
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -61,8 +62,8 @@ func (l *Logger) Name() string {
 	return l.name
 }
 
-// GetTraceHeader returns the trace header configured
-func (l *Logger) GetTraceHeader() string {
+// GetTraceHeader returns the trace header configured.
+func (l *Logger) TraceHeader() string {
 	if l.options.TraceHeader == "" {
 		return defaultTraceIDHeader
 	}
@@ -77,6 +78,14 @@ func (l *Logger) LogRequests() bool {
 // LogResponses returns if the logging of responses is enabled.
 func (l *Logger) LogResponses() bool {
 	return l.options.LogResponses
+}
+
+// TimeFormat returns the configured time format.
+func (l *Logger) TimeFormat() string {
+	if l.options.TimeFormat == "" {
+		return time.RFC3339
+	}
+	return l.options.TimeFormat
 }
 
 func (l *Logger) Debugf(format string, args ...interface{}) {
