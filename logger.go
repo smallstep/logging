@@ -2,7 +2,6 @@ package logging
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -57,6 +56,11 @@ func (l *Logger) Sync() error {
 	return l.Logger.Sync()
 }
 
+// Name returns the logging name.
+func (l *Logger) Name() string {
+	return l.name
+}
+
 // GetTraceHeader returns the trace header configured
 func (l *Logger) GetTraceHeader() string {
 	if l.options.TraceHeader == "" {
@@ -65,10 +69,14 @@ func (l *Logger) GetTraceHeader() string {
 	return l.options.TraceHeader
 }
 
-// Middleware returns the logger middleware that will trace the request of the
-// given handler.
-func (l *Logger) Middleware(next http.Handler) http.Handler {
-	return NewLoggerHandler(l.name, l, next)
+// LogResponses returns if the logging of requests is enabled.
+func (l *Logger) LogRequests() bool {
+	return l.options.LogRequests
+}
+
+// LogResponses returns if the logging of responses is enabled.
+func (l *Logger) LogResponses() bool {
+	return l.options.LogResponses
 }
 
 func (l *Logger) Debugf(format string, args ...interface{}) {

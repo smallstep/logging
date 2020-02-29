@@ -1,4 +1,4 @@
-package logging
+package httplog
 
 import (
 	"fmt"
@@ -7,25 +7,28 @@ import (
 	"net/http/httputil"
 	"time"
 
+	"github.com/smallstep/logging"
 	"go.uber.org/zap"
 )
 
 // LoggerHandler creates a logger handler
 type LoggerHandler struct {
-	*Logger
-	name string
-	next http.Handler
-	raw  bool
+	*logging.Logger
+	name         string
+	next         http.Handler
+	logRequests  bool
+	logResponses bool
 }
 
 // NewLoggerHandler returns the given http.Handler with the logger integrated.
-func NewLoggerHandler(name string, logger *Logger, next http.Handler) http.Handler {
-	h := RequestID(logger.GetTraceHeader())
+func Middleware(logger *logging.Logger, next http.Handler) http.Handler {
+	h := logging.RequestID(logger.GetTraceHeader())
 	return h(&LoggerHandler{
-		Logger: logger,
-		name:   name,
-		next:   next,
-		raw:    logger.options.LogResponses,
+		Logger:       logger,
+		name:         logger.Name(),
+		next:         next,
+		logRequests:  logger.LogRequests(),
+		logResponses: logger.LogResponses(),
 	})
 }
 
@@ -35,7 +38,7 @@ func NewLoggerHandler(name string, logger *Logger, next http.Handler) http.Handl
 func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rw ResponseLogger
 	t := time.Now()
-	if l.raw {
+	if l.logResponses {
 		rw = NewRawResponseLogger(w)
 	} else {
 		rw = NewResponseLogger(w)
@@ -47,15 +50,9 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // writeEntry writes to the Logger writer the request information in the logger.
 func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration) {
-	var reqID, user string
-
 	ctx := r.Context()
-	if v, ok := ctx.Value(RequestIDKey).(string); ok && v != "" {
-		reqID = v
-	}
-	if v, ok := ctx.Value(UserIDKey).(string); ok && v != "" {
-		user = v
-	}
+	reqID, _ := logging.GetRequestID(ctx)
+	user, _ := logging.GetUserID(ctx)
 
 	// Remote hostname
 	addr, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -78,9 +75,9 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 	status := w.StatusCode()
 
 	fields := []zap.Field{
+		zap.String("name", l.name),
 		zap.String("request-id", reqID),
 		zap.String("remote-address", addr),
-		zap.String("name", l.name),
 		zap.String("time", t.Format(time.RFC3339)),
 		zap.Duration("duration", d),
 		zap.Int64("duration-ns", d.Nanoseconds()),
@@ -97,7 +94,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 		fields = append(fields, zap.String("user-id", user))
 	}
 
-	if l.options.LogRequests {
+	if l.logRequests {
 		if b, err := httputil.DumpRequest(r, true); err == nil {
 			fields = append(fields, zap.Binary("request", b))
 		}
