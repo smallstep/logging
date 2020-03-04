@@ -39,7 +39,13 @@ func Middleware(logger *logging.Logger, next http.Handler) http.Handler {
 // bytes sent.
 func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rw ResponseLogger
+	var f []zap.Field
 	t := time.Now()
+	if l.logRequests {
+		if b, err := httputil.DumpRequest(r, true); err == nil {
+			f = append(f, zap.Binary("request", b))
+		}
+	}
 	if l.logResponses {
 		rw = NewRawResponseLogger(w)
 	} else {
@@ -47,11 +53,11 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	l.next.ServeHTTP(rw, r)
 	d := time.Since(t)
-	l.writeEntry(rw, r, t, d)
+	l.writeEntry(rw, r, t, d, f)
 }
 
 // writeEntry writes to the Logger writer the request information in the logger.
-func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration) {
+func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration, extraFields []zap.Field) {
 	ctx := r.Context()
 	reqID, _ := logging.GetRequestID(ctx)
 	user, _ := logging.GetUserID(ctx)
@@ -96,11 +102,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 		fields = append(fields, zap.String("user-id", user))
 	}
 
-	if l.logRequests {
-		if b, err := httputil.DumpRequest(r, true); err == nil {
-			fields = append(fields, zap.Binary("request", b))
-		}
-	}
+	fields = append(fields, extraFields...)
 
 	if rw, ok := w.(RawResponseLogger); ok {
 		fields = append(fields, zap.Binary("response", rw.Response()))
@@ -115,7 +117,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 	}
 
 	// for k, v := range w.Fields() {
-	// 	fields[k] = v
+	// 	fields = append(fields, zap.Any(k, v))
 	// }
 
 	switch {
