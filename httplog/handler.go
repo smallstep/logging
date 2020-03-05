@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
 	"github.com/smallstep/logging"
@@ -42,8 +41,8 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var f []zap.Field
 	t := time.Now()
 	if l.logRequests {
-		if b, err := httputil.DumpRequest(r, true); err == nil {
-			f = append(f, zap.Binary("request", b))
+		if rf, err := NewRequest(r); err == nil {
+			f = append(f, zap.Object("request", rf))
 		}
 	}
 	if l.logResponses {
@@ -105,7 +104,10 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 	fields = append(fields, extraFields...)
 
 	if rw, ok := w.(RawResponseLogger); ok {
-		fields = append(fields, zap.Binary("response", rw.Response()))
+		fields = append(fields, zap.Object("response", &Response{
+			Headers: Headers(rw.Header()),
+			Body:    rw.Response(),
+		}))
 	}
 
 	var message string
