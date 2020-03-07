@@ -2,6 +2,7 @@ package httplog
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -33,9 +34,7 @@ func (r *Request) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	_ = enc.AddObject("headers", r.Headers)
 	enc.AddBinary("body", r.Body)
 	if ct := r.Headers.Get("Content-Type"); ct != "" {
-		if s, ok := stringBody(ct, r.Body); ok {
-			enc.AddString("text", s)
-		}
+		marshalBody(ct, r.Body, enc)
 	}
 	return nil
 }
@@ -52,9 +51,7 @@ func (r *Response) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	_ = enc.AddObject("headers", r.Headers)
 	enc.AddBinary("body", r.Body)
 	if ct := r.Headers.Get("Content-Type"); ct != "" {
-		if s, ok := stringBody(ct, r.Body); ok {
-			enc.AddString("text", s)
-		}
+		marshalBody(ct, r.Body, enc)
 	}
 	return nil
 }
@@ -86,6 +83,27 @@ func (h Headers) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
+func marshalBody(contentType string, body []byte, enc zapcore.ObjectEncoder) {
+	ct := strings.SplitN(contentType, ";", 2)
+	switch {
+	case strings.HasSuffix(ct[0], "json"):
+		m := make(map[string]interface{})
+		if err := json.Unmarshal(body, &m); err == nil {
+			if err := enc.AddReflected("json", m); err == nil {
+				return
+			}
+		}
+		// fallback to string
+		enc.AddString("text", string(body))
+	case strings.HasPrefix(ct[0], "text"):
+		enc.AddString("text", string(body))
+	case strings.HasSuffix(ct[0], "x-www-form-urlencoded"):
+		enc.AddString("text", string(body))
+	case strings.HasSuffix(ct[0], "xml"):
+		enc.AddString("text", string(body))
+	}
+}
+
 func dumpRequestBody(r *http.Request) ([]byte, error) {
 	if r.Body == nil || r.Body == http.NoBody {
 		return nil, nil
@@ -99,14 +117,4 @@ func dumpRequestBody(r *http.Request) ([]byte, error) {
 	}
 	r.Body = ioutil.NopCloser(&buf)
 	return buf.Bytes(), nil
-}
-
-func stringBody(contentType string, body []byte) (string, bool) {
-	if strings.HasPrefix(contentType, "text") ||
-		strings.HasSuffix(contentType, "json") ||
-		strings.HasSuffix(contentType, "x-www-form-urlencoded") ||
-		strings.HasSuffix(contentType, "xml") {
-		return string(body), true
-	}
-	return "", false
 }
