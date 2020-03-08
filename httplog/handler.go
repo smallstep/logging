@@ -22,7 +22,7 @@ type LoggerHandler struct {
 
 // NewLoggerHandler returns the given http.Handler with the logger integrated.
 func Middleware(logger *logging.Logger, next http.Handler) http.Handler {
-	h := logging.RequestID(logger.TraceHeader())
+	h := logging.Tracing(logger.TraceHeader())
 	return h(&LoggerHandler{
 		Logger:       logger,
 		name:         logger.Name(),
@@ -58,8 +58,7 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // writeEntry writes to the Logger writer the request information in the logger.
 func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration, extraFields []zap.Field) {
 	ctx := r.Context()
-	reqID, _ := logging.GetRequestID(ctx)
-	user, _ := logging.GetUserID(ctx)
+	reqID, _ := logging.GetTraceparent(ctx)
 
 	// Remote hostname
 	addr, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -95,10 +94,6 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 		zap.Int("size", w.Size()),
 		zap.String("referer", r.Referer()),
 		zap.String("user-agent", r.UserAgent()),
-	}
-
-	if user != "" {
-		fields = append(fields, zap.String("user-id", user))
 	}
 
 	fields = append(fields, extraFields...)

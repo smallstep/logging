@@ -9,8 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// defaultTraceIdHeader is the default header used as a trace id.
-const defaultTraceIDHeader = "X-Trace-ID"
+// defaultTraceHeader is the default header used as a trace id.
+const defaultTraceHeader = "Traceparent"
 
 // Logger is a request logger that uses zap.Logger as core.
 type Logger struct {
@@ -65,7 +65,7 @@ func (l *Logger) Name() string {
 // GetTraceHeader returns the trace header configured.
 func (l *Logger) TraceHeader() string {
 	if l.options.TraceHeader == "" {
-		return defaultTraceIDHeader
+		return defaultTraceHeader
 	}
 	return l.options.TraceHeader
 }

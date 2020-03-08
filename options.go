@@ -17,7 +17,7 @@ type options struct {
 func defaultOptions() *options {
 	return &options{
 		Format:      "json",
-		TraceHeader: defaultTraceIDHeader,
+		TraceHeader: defaultTraceHeader,
 	}
 }
 
@@ -68,7 +68,7 @@ func WithTimeFormat(format string) Option {
 }
 
 // WithTraceHeader defines the name of the header used for tracing. Defaults to
-// 'X-Trace-ID'.
+// 'Traceparent'.
 func WithTraceHeader(name string) Option {
 	return func(o *options) error {
 		o.TraceHeader = name
