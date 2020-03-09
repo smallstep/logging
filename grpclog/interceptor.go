@@ -108,15 +108,12 @@ func StreamServerInterceptor(logger *logging.Logger) grpc.StreamServerIntercepto
 			fields = append(fields, zap.String("grpc.request.deadline", d.Format(time.RFC3339)))
 		}
 
-		// Create stream logger
-		stream = &serverStream{
-			ServerStream: stream,
-			logger:       l,
-		}
-
 		// Wrap stream with the new context
 		wrapped := grpc_middleware.WrapServerStream(stream)
 		wrapped.WrappedContext = ctx
+
+		// Create stream logger
+		wrapped = newServerStream(info.FullMethod, wrapped, l)
 
 		// Call handler
 		err := handler(srv, wrapped)
