@@ -87,7 +87,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 	fields := []zap.Field{
 		zap.String("name", l.name),
 		zap.String("request-id", requestID),
-		zap.String("tracing-id", tracingID)
+		zap.String("tracing-id", tracingID),
 		zap.String("remote-address", addr),
 		zap.String("time", t.Format(l.timeFormat)),
 		zap.Duration("duration", d),
