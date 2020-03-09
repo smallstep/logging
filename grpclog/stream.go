@@ -1,6 +1,8 @@
 package grpclog
 
 import (
+	"context"
+
 	"go.uber.org/zap"
 
 	"google.golang.org/grpc"
@@ -11,15 +13,23 @@ import (
 type serverStream struct {
 	grpc.ServerStream
 	logger     *serverLogger
+	context    context.Context
 	fullMethod string
 }
 
-func newServerStream(fullMethod string, stream grpc.ServerStream, logger *serverLogger) *serverStream {
+func newServerStream(ctx context.Context, fullMethod string, stream grpc.ServerStream, logger *serverLogger) *serverStream {
 	return &serverStream{
 		ServerStream: stream,
 		logger:       logger,
+		context:      ctx,
 		fullMethod:   fullMethod,
 	}
+}
+
+// Context returns the wrapped context, overwriting the nested
+// grpc.ServerStream.Context().
+func (s *serverStream) Context() context.Context {
+	return s.context
 }
 
 func (s *serverStream) SendMsg(m interface{}) error {
