@@ -48,7 +48,7 @@ func NewTraceparent() (*tracing.Traceparent, error) {
 // WithTraceparent returns a new context with the given tracing id added to the
 // context.
 func WithTraceparent(ctx context.Context, tp *tracing.Traceparent) context.Context {
-	return context.WithValue(ctx, traceheaderKey, id)
+	return context.WithValue(ctx, traceheaderKey, tp)
 }
 
 // GetTracing returns the tracing id from the context if it exists.
