@@ -58,7 +58,11 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // writeEntry writes to the Logger writer the request information in the logger.
 func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration, extraFields []zap.Field) {
 	ctx := r.Context()
-	reqID, _ := logging.GetTraceparent(ctx)
+	var requestID, tracingID string
+	if tp, ok := logging.GetTraceparent(ctx); ok {
+		requestID = tp.TraceID()
+		tracingID = tp.String()
+	}
 
 	// Remote hostname
 	addr, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -82,7 +86,8 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 
 	fields := []zap.Field{
 		zap.String("name", l.name),
-		zap.String("request-id", reqID),
+		zap.String("request-id", requestID),
+		zap.String("tracing-id", tracingID)
 		zap.String("remote-address", addr),
 		zap.String("time", t.Format(l.timeFormat)),
 		zap.Duration("duration", d),
