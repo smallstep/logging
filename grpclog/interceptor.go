@@ -5,12 +5,14 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/smallstep/logging"
 	"github.com/smallstep/logging/tracing"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 type interceptorType int
@@ -77,7 +79,7 @@ func UnaryServerInterceptor(logger *logging.Logger) grpc.UnaryServerInterceptor 
 				fields = append(fields, zap.Object("grpc.request.content", &jsonpbObjectMarshaler{pb: p}))
 			}
 		}
-		if logger.LogResponses() {
+		if err == nil && logger.LogResponses() {
 			if p, ok := resp.(proto.Message); ok {
 				fields = append(fields, zap.Object("grpc.response.content", &jsonpbObjectMarshaler{pb: p}))
 			}
