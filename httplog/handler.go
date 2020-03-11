@@ -86,6 +86,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 
 	fields := []zap.Field{
 		zap.String("name", l.name),
+		zap.String("system", "http"),
 		zap.String("request-id", requestID),
 		zap.String("tracing-id", tracingID),
 		zap.String("remote-address", addr),
@@ -110,14 +111,23 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 		}))
 	}
 
+	// Add error if present.
+	if v, ok := w.Field("error"); ok {
+		if err, ok := v.(error); ok {
+			fields = append(fields, zap.Error(err))
+		} else {
+			fields = append(fields, zap.Any("error", err))
+		}
+	}
+
 	var message string
-	v, ok := w.Field("message")
-	if ok {
+	if v, ok := w.Field("message"); ok {
 		if message, ok = v.(string); !ok {
 			message = fmt.Sprint(v)
 		}
 	}
 
+	// Add custom fields. Disabled for the moment.
 	// for k, v := range w.Fields() {
 	// 	fields = append(fields, zap.Any(k, v))
 	// }
