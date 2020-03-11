@@ -17,7 +17,7 @@ type options struct {
 func defaultOptions() *options {
 	return &options{
 		Format:      "json",
-		TraceHeader: defaultTraceHeader,
+		TraceHeader: DefaultTraceHeader,
 	}
 }
 
