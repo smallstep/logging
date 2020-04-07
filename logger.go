@@ -39,7 +39,7 @@ func New(name string, opts ...Option) (*Logger, error) {
 		return nil, errors.Errorf("unsupported logger.format '%s'", o.Format)
 	}
 
-	base, err := config.Build(zap.AddCallerSkip(1))
+	base, err := config.Build(zap.AddCallerSkip(o.CallerSkip))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating logger")
 	}
@@ -97,6 +97,22 @@ func (l *Logger) TimeFormat() string {
 	return l.options.TimeFormat
 }
 
+func (l *Logger) Debug(msg string, fields ...zap.Field) {
+	l.Logger.Debug(msg, fields...)
+}
+
+func (l *Logger) Error(msg string, fields ...zap.Field) {
+	l.Logger.Error(msg, fields...)
+}
+
+func (l *Logger) Fatal(msg string, fields ...zap.Field) {
+	l.Logger.Fatal(msg, fields...)
+}
+
+func (l *Logger) Info(msg string, fields ...zap.Field) {
+	l.Logger.Info(msg, fields...)
+}
+
 func (l *Logger) Debugf(format string, args ...interface{}) {
 	l.Logger.Debug(fmt.Sprintf(format, args...))
 }
@@ -111,4 +127,8 @@ func (l *Logger) Warnf(format string, args ...interface{}) {
 
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.Logger.Error(fmt.Sprintf(format, args...))
+}
+
+func (l *Logger) Fatalf(format string, args ...interface{}) {
+	l.Logger.Fatal(fmt.Sprintf(format, args...))
 }
