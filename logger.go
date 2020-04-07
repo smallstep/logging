@@ -39,7 +39,7 @@ func New(name string, opts ...Option) (*Logger, error) {
 		return nil, errors.Errorf("unsupported logger.format '%s'", o.Format)
 	}
 
-	base, err := config.Build()
+	base, err := config.Build(zap.AddCallerSkip(1))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating logger")
 	}
@@ -49,6 +49,15 @@ func New(name string, opts ...Option) (*Logger, error) {
 		name:    name,
 		options: o,
 	}, nil
+}
+
+// Clones creates a new copy of the logger with the given options.
+func (l *Logger) Clone(opts ...zap.Option) *Logger {
+	return &Logger{
+		Logger:  l.Logger.WithOptions(opts...),
+		name:    l.name,
+		options: l.options,
+	}
 }
 
 // Sync calls the underlying Core's Sync method, flushing any buffered log
