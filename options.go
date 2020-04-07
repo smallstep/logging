@@ -12,12 +12,14 @@ type options struct {
 	LogRequests  bool   `json:"logRequests"`
 	LogResponses bool   `json:"logResponses"`
 	TimeFormat   string `json:"timeFormat"`
+	CallerSkip   int    `json:"callerSkip"`
 }
 
 func defaultOptions() *options {
 	return &options{
 		Format:      "json",
 		TraceHeader: DefaultTraceHeader,
+		CallerSkip:  1,
 	}
 }
 
@@ -88,6 +90,14 @@ func WithLogRequests() Option {
 func WithLogResponses() Option {
 	return func(o *options) error {
 		o.LogResponses = true
+		return nil
+	}
+}
+
+// WithCallerSkip increases the number of callers skipped by caller annotation.
+func WithCallerSkip(skip int) Option {
+	return func(o *options) error {
+		o.CallerSkip = skip
 		return nil
 	}
 }
