@@ -29,19 +29,19 @@ func New(name string, opts ...Option) (*Logger, error) {
 		return nil, err
 	}
 
-	config := zap.NewProductionConfig()
+	config := zap.NewProductionEncoderConfig()
 
 	var outEncoder, errEncoder zapcore.Encoder
 	switch strings.ToLower(o.Format) {
 	case "", "text":
-		outEncoder = encoder.NewTextEncoder(zap.NewProductionEncoderConfig())
-		errEncoder = encoder.NewTextEncoder(zap.NewProductionEncoderConfig())
+		outEncoder = encoder.NewTextEncoder(config)
+		errEncoder = encoder.NewTextEncoder(config)
 	case "json":
-		config.Encoding = "json"
-		outEncoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
-		errEncoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
-	// case "common":
-	// TODO
+		outEncoder = zapcore.NewJSONEncoder(config)
+		errEncoder = zapcore.NewJSONEncoder(config)
+	case "common":
+		outEncoder = encoder.NewCLFEncoder(config)
+		errEncoder = encoder.NewCLFEncoder(config)
 	default:
 		return nil, errors.Errorf("unsupported logger.format '%s'", o.Format)
 	}
