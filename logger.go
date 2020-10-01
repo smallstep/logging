@@ -2,11 +2,14 @@ package logging
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/smallstep/logging/encoder"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // DefaultTraceHeader is the default header used as a trace id.
@@ -28,30 +31,47 @@ func New(name string, opts ...Option) (*Logger, error) {
 
 	config := zap.NewProductionConfig()
 
+	var outEncoder, errEncoder zapcore.Encoder
 	switch strings.ToLower(o.Format) {
-	// case "", "text":
-	// TODO
+	case "", "text":
+		outEncoder = encoder.NewTextEncoder(zap.NewProductionEncoderConfig())
+		errEncoder = encoder.NewTextEncoder(zap.NewProductionEncoderConfig())
 	case "json":
 		config.Encoding = "json"
+		outEncoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+		errEncoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
 	// case "common":
 	// TODO
 	default:
 		return nil, errors.Errorf("unsupported logger.format '%s'", o.Format)
 	}
 
-	base, err := config.Build(zap.AddCallerSkip(o.CallerSkip))
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating logger")
-	}
+	// Logs info and debug to stdout
+	outWriter := zapcore.Lock(os.Stdout)
+	outLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl < zapcore.WarnLevel
+	})
+
+	// Logs warning and errors to stderr
+	errWriter := zapcore.Lock(os.Stderr)
+	errLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl >= zapcore.WarnLevel
+	})
+
+	// Create zap.Logger
+	logger := zap.New(zapcore.NewTee(
+		zapcore.NewCore(outEncoder, outWriter, outLevel),
+		zapcore.NewCore(errEncoder, errWriter, errLevel),
+	)).WithOptions(zap.AddCallerSkip(o.CallerSkip))
 
 	return &Logger{
-		Logger:  base,
+		Logger:  logger,
 		name:    name,
 		options: o,
 	}, nil
 }
 
-// Clones creates a new copy of the logger with the given options.
+// Clone creates a new copy of the logger with the given options.
 func (l *Logger) Clone(opts ...zap.Option) *Logger {
 	return &Logger{
 		Logger:  l.Logger.WithOptions(opts...),
@@ -71,7 +91,7 @@ func (l *Logger) Name() string {
 	return l.name
 }
 
-// GetTraceHeader returns the trace header configured.
+// TraceHeader returns the trace header configured.
 func (l *Logger) TraceHeader() string {
 	if l.options.TraceHeader == "" {
 		return DefaultTraceHeader
@@ -79,7 +99,7 @@ func (l *Logger) TraceHeader() string {
 	return l.options.TraceHeader
 }
 
-// LogResponses returns if the logging of requests is enabled.
+// LogRequests returns if the logging of requests is enabled.
 func (l *Logger) LogRequests() bool {
 	return l.options.LogRequests
 }
@@ -97,38 +117,53 @@ func (l *Logger) TimeFormat() string {
 	return l.options.TimeFormat
 }
 
+// Debug logs a message at debug level.
 func (l *Logger) Debug(msg string, fields ...zap.Field) {
 	l.Logger.Debug(msg, fields...)
 }
 
-func (l *Logger) Error(msg string, fields ...zap.Field) {
-	l.Logger.Error(msg, fields...)
-}
-
-func (l *Logger) Fatal(msg string, fields ...zap.Field) {
-	l.Logger.Fatal(msg, fields...)
-}
-
+// Info logs a message at info level.
 func (l *Logger) Info(msg string, fields ...zap.Field) {
 	l.Logger.Info(msg, fields...)
 }
 
+// Warn logs a message at warn level.
+func (l *Logger) Warn(msg string, fields ...zap.Field) {
+	l.Logger.Warn(msg, fields...)
+}
+
+// Error logs a message at error level.
+func (l *Logger) Error(msg string, fields ...zap.Field) {
+	l.Logger.Error(msg, fields...)
+}
+
+// Fatal logs a message at fatal level and then calls to os.Exit(1).
+func (l *Logger) Fatal(msg string, fields ...zap.Field) {
+	l.Logger.Fatal(msg, fields...)
+}
+
+// Debugf formats and logs a message at debug level.
 func (l *Logger) Debugf(format string, args ...interface{}) {
 	l.Logger.Debug(fmt.Sprintf(format, args...))
 }
 
+// Infof formats and logs a message at info level.
 func (l *Logger) Infof(format string, args ...interface{}) {
 	l.Logger.Info(fmt.Sprintf(format, args...))
 }
 
+// Warnf formats and logs a message at warn level.
 func (l *Logger) Warnf(format string, args ...interface{}) {
 	l.Logger.Warn(fmt.Sprintf(format, args...))
 }
 
+// Errorf formats and logs a message at error level.
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.Logger.Error(fmt.Sprintf(format, args...))
 }
 
+// Fatalf formats and logs a message at fatal level and then calls to
+// os.Exit(1).
 func (l *Logger) Fatalf(format string, args ...interface{}) {
 	l.Logger.Fatal(fmt.Sprintf(format, args...))
 }
