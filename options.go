@@ -32,7 +32,7 @@ func (o *options) apply(opts []Option) (err error) {
 	return
 }
 
-// Options is the type used to modify logger options.
+// Option is the type used to modify logger options.
 type Option func(o *options) error
 
 // WithConfig uses a JSON to configure the logger.
