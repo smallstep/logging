@@ -7,6 +7,17 @@ import (
 	"net/http"
 )
 
+const (
+	// MessageKey is the key used to store the log message.
+	MessageKey = "message"
+	// RequestKey is the key used to keep the request if enabled.
+	RequestKey = "request"
+	// ResponseKey is the key used to keep the response if enabled.
+	ResponseKey = "response"
+	// ErrorKey is the key used to store an error.
+	ErrorKey = "error"
+)
+
 // ResponseLogger defines an interface that a responseWrite can implement to
 // support the capture of the status code, the number of bytes written and
 // extra log entry fields.
@@ -15,15 +26,18 @@ type ResponseLogger interface {
 	Size() int
 	StatusCode() int
 	Fields() map[string]interface{}
+	WithField(key string, value interface{})
 	WithFields(map[string]interface{})
 	Field(key string) (interface{}, bool)
+	Request() (*Request, bool)
 }
 
-// ResponseLogger defines an interface that a responseWrite can implement to
-// support the capture of the status code, the number of bytes written and
-// extra log entry fields.
+// RawResponseLogger defines an interface that a responseWrite can implement to
+// support the capture of the status code, the number of bytes written and extra
+// log entry fields.
 type RawResponseLogger interface {
 	ResponseLogger
+	Buffer() *bytes.Buffer
 	Response() []byte
 }
 
@@ -77,6 +91,10 @@ type rwDefaultRaw struct {
 	response *bytes.Buffer
 }
 
+func (r *rwDefaultRaw) Buffer() *bytes.Buffer {
+	return r.response
+}
+
 func (r *rwDefaultRaw) Response() []byte {
 	return r.response.Bytes()
 }
@@ -110,6 +128,11 @@ func (r *rwDefault) StatusCode() int {
 	return r.code
 }
 
+func (r *rwDefault) Request() (*Request, bool) {
+	req, ok := r.fields["request"].(*Request)
+	return req, ok
+}
+
 func (r *rwDefault) Field(key string) (v interface{}, ok bool) {
 	v, ok = r.fields[key]
 	return
@@ -117,6 +140,13 @@ func (r *rwDefault) Field(key string) (v interface{}, ok bool) {
 
 func (r *rwDefault) Fields() map[string]interface{} {
 	return r.fields
+}
+
+func (r *rwDefault) WithField(key string, value interface{}) {
+	if r.fields == nil {
+		r.fields = make(map[string]interface{})
+	}
+	r.fields[key] = value
 }
 
 func (r *rwDefault) WithFields(fields map[string]interface{}) {

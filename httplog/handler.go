@@ -10,6 +10,31 @@ import (
 	"go.uber.org/zap"
 )
 
+type options struct {
+	Redactors []RedactorFunc
+}
+
+// Option is the type used to modify logger options.
+type Option func(o *options)
+
+func (o *options) apply(opts []Option) *options {
+	for _, fn := range opts {
+		fn(o)
+	}
+	return o
+}
+
+// RedactorFunc is a function that redacts the HTTP request or response
+// logged.
+type RedactorFunc func(w http.ResponseWriter, r *http.Request)
+
+// WithRedactor is an option that adds a new redactor to a httplog.
+func WithRedactor(fn RedactorFunc) Option {
+	return func(o *options) {
+		o.Redactors = append(o.Redactors, fn)
+	}
+}
+
 // LoggerHandler creates a logger handler
 type LoggerHandler struct {
 	*logging.Logger
@@ -18,10 +43,12 @@ type LoggerHandler struct {
 	logRequests  bool
 	logResponses bool
 	timeFormat   string
+	options      *options
 }
 
-// NewLoggerHandler returns the given http.Handler with the logger integrated.
-func Middleware(logger *logging.Logger, next http.Handler) http.Handler {
+// Middleware returns the given http.Handler with the logger integrated.
+func Middleware(logger *logging.Logger, next http.Handler, opts ...Option) http.Handler {
+	o := new(options).apply(opts)
 	h := logging.Tracing(logger.TraceHeader())
 	return h(&LoggerHandler{
 		Logger:       logger,
@@ -30,6 +57,7 @@ func Middleware(logger *logging.Logger, next http.Handler) http.Handler {
 		logRequests:  logger.LogRequests(),
 		logResponses: logger.LogResponses(),
 		timeFormat:   logger.TimeFormat(),
+		options:      o,
 	})
 }
 
@@ -38,25 +66,30 @@ func Middleware(logger *logging.Logger, next http.Handler) http.Handler {
 // bytes sent.
 func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rw ResponseLogger
-	var f []zap.Field
 	t := time.Now()
-	if l.logRequests {
-		if rf, err := NewRequest(r); err == nil {
-			f = append(f, zap.Object("request", rf))
-		}
-	}
 	if l.logResponses {
 		rw = NewRawResponseLogger(w)
 	} else {
 		rw = NewResponseLogger(w)
 	}
+	if l.logRequests {
+		if rf, err := NewRequest(r); err == nil {
+			rw.WithField(RequestKey, rf)
+		}
+	}
+	// Serve next http handler.
 	l.next.ServeHTTP(rw, r)
 	d := time.Since(t)
-	l.writeEntry(rw, r, t, d, f)
+	// Redact request and response if configured.
+	for _, redactor := range l.options.Redactors {
+		redactor(rw, r)
+	}
+	// Write logs.
+	l.writeEntry(rw, r, t, d)
 }
 
 // writeEntry writes to the Logger writer the request information in the logger.
-func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration, extraFields []zap.Field) {
+func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration) {
 	ctx := r.Context()
 	var requestID, tracingID string
 	if tp, ok := logging.GetTraceparent(ctx); ok {
@@ -102,26 +135,30 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 		zap.String("user-agent", r.UserAgent()),
 	}
 
-	fields = append(fields, extraFields...)
+	// Add request added in the middleware.
+	if r, ok := w.Request(); ok {
+		fields = append(fields, zap.Object(RequestKey, r))
+	}
 
+	// Add request from response logger.
 	if rw, ok := w.(RawResponseLogger); ok {
-		fields = append(fields, zap.Object("response", &Response{
+		fields = append(fields, zap.Object(ResponseKey, &Response{
 			Headers: Headers(rw.Header()),
 			Body:    rw.Response(),
 		}))
 	}
 
 	// Add error if present.
-	if v, ok := w.Field("error"); ok {
+	if v, ok := w.Field(ErrorKey); ok {
 		if err, ok := v.(error); ok {
 			fields = append(fields, zap.Error(err))
 		} else {
-			fields = append(fields, zap.Any("error", err))
+			fields = append(fields, zap.Any(ErrorKey, err))
 		}
 	}
 
 	var message string
-	if v, ok := w.Field("message"); ok {
+	if v, ok := w.Field(MessageKey); ok {
 		if message, ok = v.(string); !ok {
 			message = fmt.Sprint(v)
 		}
