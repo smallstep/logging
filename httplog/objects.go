@@ -32,9 +32,10 @@ func NewRequest(r *http.Request) (*Request, error) {
 // MarshalLogObject adds the properties of the request in the log.
 func (r *Request) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	_ = enc.AddObject("headers", r.Headers)
-	enc.AddBinary("body", r.Body)
 	if ct := r.Headers.Get("Content-Type"); ct != "" {
 		marshalBody(ct, r.Body, enc)
+	} else {
+		enc.AddBinary("body", r.Body)
 	}
 	return nil
 }
@@ -49,9 +50,10 @@ type Response struct {
 // MarshalLogObject adds the properties of the response in the log.
 func (r *Response) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	_ = enc.AddObject("headers", r.Headers)
-	enc.AddBinary("body", r.Body)
 	if ct := r.Headers.Get("Content-Type"); ct != "" {
 		marshalBody(ct, r.Body, enc)
+	} else {
+		enc.AddBinary("body", r.Body)
 	}
 	return nil
 }
@@ -101,6 +103,8 @@ func marshalBody(contentType string, body []byte, enc zapcore.ObjectEncoder) {
 		enc.AddString("text", string(body))
 	case strings.HasSuffix(ct[0], "xml"):
 		enc.AddString("text", string(body))
+	default:
+		enc.AddBinary("body", body)
 	}
 }
 
