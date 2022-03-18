@@ -2,6 +2,8 @@ package logging
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -12,6 +14,17 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Level indicates the log level.
+type Level int8
+
+const (
+	DebugLevel Level = iota - 1
+	InfoLevel
+	WarnLevel
+	ErrorLevel
+	FatalLevel
+)
+
 // DefaultTraceHeader is the default header used as a trace id.
 const DefaultTraceHeader = "Traceparent"
 
@@ -20,6 +33,30 @@ type Logger struct {
 	*zap.Logger
 	name    string
 	options *options
+}
+
+type writer struct {
+	*zap.Logger
+	Name  zap.Field
+	Level Level
+}
+
+func (w *writer) Write(b []byte) (int, error) {
+	switch w.Level {
+	case DebugLevel:
+		w.Debug(string(b), w.Name)
+	case InfoLevel:
+		w.Info(string(b), w.Name)
+	case WarnLevel:
+		w.Warn(string(b), w.Name)
+	case ErrorLevel:
+		w.Error(string(b), w.Name)
+	case FatalLevel:
+		w.Fatal(string(b), w.Name)
+	default:
+		w.Info(string(b), w.Name)
+	}
+	return len(b), nil
 }
 
 // New initializes the logger with the given options.
@@ -115,6 +152,27 @@ func (l *Logger) TimeFormat() string {
 		return time.RFC3339
 	}
 	return l.options.TimeFormat
+}
+
+// Writer returns a io.Writer for the given level. It is generally combined with
+// the Logger.StdLogger method.
+func (l *Logger) Writer(level Level) io.Writer {
+	return &writer{
+		Logger: l.Logger,
+		Name:   zap.String("name", l.name),
+		Level:  level,
+	}
+}
+
+// StdLogger returns a *log.Logger with the specified writer. The writer can be
+// created with the Logger.Writer method.
+//  srv := &http.Server{
+//      Addr:     ":8080",
+//      Handler:  httplog.Middleware(logger, http.DefaultServeMux),
+//      ErrorLog: logger.StdLogger(logger.Writer(logging.ErrorLevel)),
+//  }
+func (l *Logger) StdLogger(w io.Writer) *log.Logger {
+	return log.New(w, "", 0)
 }
 
 // Debug logs a message at debug level.
