@@ -169,10 +169,10 @@ func (l *Logger) Writer(level Level) io.Writer {
 //  srv := &http.Server{
 //      Addr:     ":8080",
 //      Handler:  httplog.Middleware(logger, http.DefaultServeMux),
-//      ErrorLog: logger.StdLogger(logger.Writer(logging.ErrorLevel)),
+//      ErrorLog: logger.StdLogger(logging.ErrorLevel),
 //  }
-func (l *Logger) StdLogger(w io.Writer) *log.Logger {
-	return log.New(w, "", 0)
+func (l *Logger) StdLogger(level Level) *log.Logger {
+	return log.New(l.Writer(level), "", 0)
 }
 
 // Debug logs a message at debug level.

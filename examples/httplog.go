@@ -25,7 +25,7 @@ func main() {
 	srv := &http.Server{
 		Addr:     ":8080",
 		Handler:  httplog.Middleware(logger, http.DefaultServeMux),
-		ErrorLog: logger.StdLogger(logger.Writer(logging.ErrorLevel)),
+		ErrorLog: logger.StdLogger(logging.ErrorLevel),
 	}
 
 	logger.Infof("start listening at %s.", srv.Addr)
