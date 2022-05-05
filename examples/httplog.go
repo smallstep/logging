@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	logger, err := logging.New("scim",
+	logger, err := logging.New("saluter",
 		logging.WithLogResponses(),
 		logging.WithLogRequests(),
 	)
