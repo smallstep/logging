@@ -61,11 +61,13 @@ func GetTraceparent(ctx context.Context) (*tracing.Traceparent, bool) {
 	return v, ok
 }
 
+// WithName returns a new context with the given name in the context. This name
+// will appear in the log entries that include the returning context.
 func WithName(ctx context.Context, name string) context.Context {
 	return context.WithValue(ctx, nameKey, name)
 }
 
-// GetNAme returns the log name from the context if it exists.
+// GetName returns the log name from the context if it exists.
 func GetName(ctx context.Context) (string, bool) {
 	v, ok := ctx.Value(nameKey).(string)
 	return v, ok
