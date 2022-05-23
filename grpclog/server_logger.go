@@ -49,14 +49,19 @@ func (l *serverLogger) Log(ctx context.Context, fullMethod string, t time.Time, 
 		service = parts[l-1]
 	}
 
-	var requestID, tracingID string
+	var name, requestID, tracingID string
+	if s, ok := logging.GetName(ctx); ok {
+		name = s
+	} else {
+		name = l.name
+	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
 		requestID = tp.TraceID()
 		tracingID = tp.String()
 	}
 
 	fields := []zap.Field{
-		zap.String("name", l.name),
+		zap.String("name", name),
 		zap.String("system", "grpc"),
 		zap.String("span.kind", "server"),
 		zap.String("grpc.package", pkg),
@@ -113,14 +118,19 @@ func (l *serverLogger) LogStream(ctx context.Context, fullMethod string, msg str
 		service = parts[l-1]
 	}
 
-	var requestID, tracingID string
+	var name, requestID, tracingID string
+	if s, ok := logging.GetName(ctx); ok {
+		name = s
+	} else {
+		name = l.name
+	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
 		requestID = tp.TraceID()
 		tracingID = tp.String()
 	}
 
 	fields := []zap.Field{
-		zap.String("name", l.name),
+		zap.String("name", name),
 		zap.String("system", "grpc"),
 		zap.String("span.kind", "server"),
 		zap.String("grpc.package", pkg),

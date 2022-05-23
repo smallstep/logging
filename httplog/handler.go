@@ -91,7 +91,12 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // writeEntry writes to the Logger writer the request information in the logger.
 func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration) {
 	ctx := r.Context()
-	var requestID, tracingID string
+	var name, requestID, tracingID string
+	if s, ok := logging.GetName(ctx); ok {
+		name = s
+	} else {
+		name = l.name
+	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
 		requestID = tp.TraceID()
 		tracingID = tp.String()
@@ -118,7 +123,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 	status := w.StatusCode()
 
 	fields := []zap.Field{
-		zap.String("name", l.name),
+		zap.String("name", name),
 		zap.String("system", "http"),
 		zap.String("request-id", requestID),
 		zap.String("tracing-id", tracingID),

@@ -9,8 +9,12 @@ import (
 
 type key int
 
-// traceheaderKey is the context key that should store the request identifier.
-const traceheaderKey key = iota
+const (
+	// traceheaderKey is the context key that should store the request identifier.
+	traceheaderKey key = iota
+	// nameKey is the context key used to stored the log name.
+	nameKey
+)
 
 // Tracing returns a new middleware that gets the given header and sets it in
 // the context so it can be written in the logger. If the header does not exists
@@ -51,8 +55,20 @@ func WithTraceparent(ctx context.Context, tp *tracing.Traceparent) context.Conte
 	return context.WithValue(ctx, traceheaderKey, tp)
 }
 
-// GetTracing returns the tracing id from the context if it exists.
+// GetTraceparent returns the tracing id from the context if it exists.
 func GetTraceparent(ctx context.Context) (*tracing.Traceparent, bool) {
 	v, ok := ctx.Value(traceheaderKey).(*tracing.Traceparent)
+	return v, ok
+}
+
+// WithName returns a new context with the given name in the context. This name
+// will appear in the log entries that include the returning context.
+func WithName(ctx context.Context, name string) context.Context {
+	return context.WithValue(ctx, nameKey, name)
+}
+
+// GetName returns the log name from the context if it exists.
+func GetName(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(nameKey).(string)
 	return v, ok
 }
