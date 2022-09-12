@@ -1,23 +1,19 @@
 package grpclog
 
 import (
-	"bytes"
 	"fmt"
 
-	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
-
-	grpc_logging "github.com/grpc-ecosystem/go-grpc-middleware/logging"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
-	// JsonPbMarshaller is the marshaller used for serializing protobuf
+	// JSONPbMarshaller is the marshaller used for serializing protobuf
 	// messages. If needed, this variable can be reassigned with a different
 	// marshaller with the same Marshal() signature.
-	JsonPbMarshaller grpc_logging.JsonPbMarshaler = &jsonpb.Marshaler{}
+	JSONPbMarshaller = protojson.MarshalOptions{}
 )
 
 type jsonpbObjectMarshaler struct {
@@ -29,18 +25,9 @@ func (j *jsonpbObjectMarshaler) MarshalLogObject(enc zapcore.ObjectEncoder) erro
 }
 
 func (j *jsonpbObjectMarshaler) MarshalJSON() ([]byte, error) {
-	b := &bytes.Buffer{}
-	if err := JsonPbMarshaller.Marshal(b, j.pb); err != nil {
-		return nil, fmt.Errorf("grpclog: jsonpb serializer failed: %v", err)
+	b, err := JSONPbMarshaller.Marshal(j.pb)
+	if err != nil {
+		return nil, fmt.Errorf("grpclog: jsonpb serializer failed: %w", err)
 	}
-	return b.Bytes(), nil
-}
-
-func marshalMessageJSON(key string, msg interface{}) []zap.Field {
-	if p, ok := msg.(proto.Message); ok {
-		return []zap.Field{
-			zap.Object(key, &jsonpbObjectMarshaler{pb: p}),
-		}
-	}
-	return nil
+	return b, nil
 }

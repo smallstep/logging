@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/smallstep/logging"
 	"github.com/smallstep/logging/tracing"
+	"google.golang.org/protobuf/proto"
 )
 
 type interceptorType int

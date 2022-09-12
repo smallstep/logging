@@ -29,7 +29,7 @@ func init() {
 
 // NewCLFEncoder returns a new encoder that logs messages with the Common Log
 // Format. Each logged line will follow the format:
-// 	<request-id> <remote-address> <name> <user-id> <time> <duration> "<method> <path> <protocol>" <status> <size>
+// <request-id> <remote-address> <name> <user-id> <time> <duration> "<method> <path> <protocol>" <status> <size>
 func NewCLFEncoder(config zapcore.EncoderConfig) zapcore.Encoder {
 	return &clfEncoder{
 		EncoderConfig: &config,
@@ -139,7 +139,7 @@ func (e *clfEncoder) AddBool(key string, value bool) {
 
 func (e *clfEncoder) AddComplex128(key string, value complex128) {
 	if i, ok := clfFieldsMap[key]; ok {
-		r, img := float64(real(value)), float64(imag(value))
+		r, img := real(value), imag(value)
 		e.data[i] = fmt.Sprintf(`"%s+%si"`, strconv.FormatFloat(r, 'f', -1, 64), strconv.FormatFloat(img, 'f', -1, 64))
 	}
 }

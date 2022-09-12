@@ -65,7 +65,7 @@ func (e *genericEncoder) AppendComplex64(v complex64) { e.AppendComplex128(compl
 
 func (e *genericEncoder) AppendComplex128(v complex128) {
 	// Cast to a platform-independent, fixed-size type.
-	r, i := float64(real(v)), float64(imag(v))
+	r, i := real(v), imag(v)
 	e.buf.AppendByte('"')
 	// Because we're always in a quoted string, we can use strconv without
 	// special-casing NaN and +/-Inf.

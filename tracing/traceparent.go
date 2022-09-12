@@ -47,7 +47,7 @@ func New() (*Traceparent, error) {
 func Must() *Traceparent {
 	t, err := New()
 	if err != nil {
-		panic(fmt.Errorf("tracing: cannot generate random number: %v", err))
+		panic(fmt.Errorf("tracing: cannot generate random number: %w", err))
 	}
 	return t
 }
@@ -99,7 +99,7 @@ func (t *Traceparent) NewSpan() (*Traceparent, error) {
 		traceID:    t.traceID,
 		traceFlags: t.traceFlags,
 	}
-	copy(tt.parentID[:], id[:])
+	copy(tt.parentID[:], id)
 	return tt, nil
 }
 
