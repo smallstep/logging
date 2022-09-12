@@ -76,12 +76,12 @@ func UnaryServerInterceptor(logger *logging.Logger) grpc.UnaryServerInterceptor 
 
 		if logger.LogRequests() {
 			if p, ok := req.(proto.Message); ok {
-				fields = append(fields, zap.Object("grpc.request.content", &jsonpbObjectMarshaler{pb: p}))
+				fields = append(fields, zap.Object("grpc.request.content", &protojsonObjectMarshaler{pb: p}))
 			}
 		}
 		if err == nil && logger.LogResponses() {
 			if p, ok := resp.(proto.Message); ok {
-				fields = append(fields, zap.Object("grpc.response.content", &jsonpbObjectMarshaler{pb: p}))
+				fields = append(fields, zap.Object("grpc.response.content", &protojsonObjectMarshaler{pb: p}))
 			}
 		}
 

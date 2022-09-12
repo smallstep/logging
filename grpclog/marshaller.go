@@ -10,24 +10,24 @@ import (
 )
 
 var (
-	// JSONPbMarshaller is the marshaller used for serializing protobuf
+	// PROTOJSONMarshaller is the marshaller used for serializing protobuf
 	// messages. If needed, this variable can be reassigned with a different
 	// marshaller with the same Marshal() signature.
-	JSONPbMarshaller = protojson.MarshalOptions{}
+	PROTOJSONMarshaller = protojson.MarshalOptions{}
 )
 
-type jsonpbObjectMarshaler struct {
+type protojsonObjectMarshaler struct {
 	pb proto.Message
 }
 
-func (j *jsonpbObjectMarshaler) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+func (j *protojsonObjectMarshaler) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return enc.AddReflected("msg", j)
 }
 
-func (j *jsonpbObjectMarshaler) MarshalJSON() ([]byte, error) {
-	b, err := JSONPbMarshaller.Marshal(j.pb)
+func (j *protojsonObjectMarshaler) MarshalJSON() ([]byte, error) {
+	b, err := PROTOJSONMarshaller.Marshal(j.pb)
 	if err != nil {
-		return nil, fmt.Errorf("grpclog: jsonpb serializer failed: %w", err)
+		return nil, fmt.Errorf("grpclog: protojson serializer failed: %w", err)
 	}
 	return b, nil
 }

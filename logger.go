@@ -154,7 +154,7 @@ func (l *Logger) TimeFormat() string {
 	return l.options.TimeFormat
 }
 
-// Writer returns a io.Writer with the specified log level. 
+// Writer returns a io.Writer with the specified log level.
 func (l *Logger) Writer(level Level) io.Writer {
 	return &writer{
 		Logger: l.Logger,
@@ -164,11 +164,6 @@ func (l *Logger) Writer(level Level) io.Writer {
 }
 
 // StdLogger returns a *log.Logger with the specified log level.
-//  srv := &http.Server{
-//      Addr:     ":8080",
-//      Handler:  httplog.Middleware(logger, http.DefaultServeMux),
-//      ErrorLog: logger.StdLogger(logging.ErrorLevel),
-//  }
 func (l *Logger) StdLogger(level Level) *log.Logger {
 	return log.New(l.Writer(level), "", 0)
 }
