@@ -79,9 +79,9 @@ func (l *serverLogger) Log(ctx context.Context, fullMethod string, t time.Time, 
 		fields = append(fields, extra...)
 	}
 
-	if peer, ok := peer.FromContext(ctx); ok {
-		fields = append(fields, zap.String("peer.address", peer.Addr.String()))
-		if s, ok := getPeerIdentity(peer); ok {
+	if pr, ok := peer.FromContext(ctx); ok {
+		fields = append(fields, zap.String("peer.address", pr.Addr.String()))
+		if s, ok := getPeerIdentity(pr); ok {
 			fields = append(fields, zap.String("peer.identity", s))
 		}
 	}
@@ -108,7 +108,7 @@ func (l *serverLogger) Log(ctx context.Context, fullMethod string, t time.Time, 
 	}
 }
 
-func (l *serverLogger) LogStream(ctx context.Context, fullMethod string, msg string, extra []zap.Field) {
+func (l *serverLogger) LogStream(ctx context.Context, fullMethod, msg string, extra []zap.Field) {
 	var pkg string
 	service := path.Dir(fullMethod)[1:]
 	method := path.Base(fullMethod)
@@ -193,8 +193,7 @@ func getPeerIdentity(p *peer.Peer) (string, bool) {
 	if p.AuthInfo == nil {
 		return "", false
 	}
-	switch p.AuthInfo.AuthType() {
-	case "tls":
+	if p.AuthInfo.AuthType() == "tls" {
 		if tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo); ok {
 			return getCommonName(tlsInfo.State)
 		}

@@ -3,7 +3,7 @@ package httplog
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -119,6 +119,6 @@ func dumpRequestBody(r *http.Request) ([]byte, error) {
 	if err := r.Body.Close(); err != nil {
 		return nil, err
 	}
-	r.Body = ioutil.NopCloser(&buf)
+	r.Body = io.NopCloser(&buf)
 	return buf.Bytes(), nil
 }
