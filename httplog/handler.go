@@ -85,7 +85,6 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		redactor(rw, r)
 	}
 	// Write logs.
-	//nolint:contextcheck // the context is being passed through the request object
 	l.writeEntry(rw, r, t, d)
 }
 
