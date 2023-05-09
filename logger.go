@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -33,6 +34,19 @@ type Logger struct {
 	*zap.Logger
 	name    string
 	options *options
+}
+
+type loggerKey struct{}
+
+// NewContext adds the given logger to the context.
+func NewContext(ctx context.Context, logger *Logger) context.Context {
+	return context.WithValue(ctx, loggerKey{}, logger)
+}
+
+// FromContext returns a logger from the given context.
+func FromContext(ctx context.Context) (logger *Logger, ok bool) {
+	logger, ok = ctx.Value(loggerKey{}).(*Logger)
+	return
 }
 
 type writer struct {
