@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,14 +50,20 @@ func (l Level) String() string {
 	}
 }
 
-func (l Level) toZapCoreLevel() zapcore.Level {
-	return zapcore.Level(l)
-}
-
 // UnmarshalText implements [encoding.TextUnmarshaler] for Level.
 func (l *Level) UnmarshalText(text []byte) error {
 	switch lit := strings.ToLower(string(text)); lit {
 	default:
+		if strings.HasPrefix(lit, "level(") && strings.HasSuffix(lit, ")") {
+			inner := lit[6 : len(lit)-1] // trim
+
+			if i, err := strconv.ParseInt(inner, 10, 8); err == nil {
+				*l = Level(i)
+
+				return nil
+			}
+		}
+
 		return fmt.Errorf("invalid level: %q", lit)
 	case "debug":
 		*l = DebugLevel
@@ -144,7 +151,7 @@ func New(name string, opts ...Option) (*Logger, error) {
 		return nil, errors.Errorf("unsupported logger.format '%s'", o.Format)
 	}
 
-	minLogLevel := o.Level.toZapCoreLevel()
+	minLogLevel := zapcore.Level(o.Level) // one-to-one mapping
 
 	// Logs info and debug to stdout
 	outWriter := zapcore.Lock(os.Stdout)
