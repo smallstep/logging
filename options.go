@@ -2,25 +2,45 @@ package logging
 
 import (
 	"encoding/json"
+	"os"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap/zapcore"
 )
 
 type options struct {
-	Format       string `json:"format"`
-	TraceHeader  string `json:"traceHeader"`
-	LogRequests  bool   `json:"logRequests"`
-	LogResponses bool   `json:"logResponses"`
-	TimeFormat   string `json:"timeFormat"`
-	CallerSkip   int    `json:"callerSkip"`
+	Format       string        `json:"format"`
+	Level        zapcore.Level `json:"level"`
+	TraceHeader  string        `json:"traceHeader"`
+	LogRequests  bool          `json:"logRequests"`
+	LogResponses bool          `json:"logResponses"`
+	TimeFormat   string        `json:"timeFormat"`
+	CallerSkip   int           `json:"callerSkip"`
 }
 
 func defaultOptions() *options {
 	return &options{
-		Format:      "json",
+		Format:      formatFromEnv(),
+		Level:       levelFromEnv(),
 		TraceHeader: DefaultTraceHeader,
 		CallerSkip:  1,
 	}
+}
+
+func formatFromEnv() (format string) {
+	if format = os.Getenv("LOG_FORMAT"); format == "" {
+		format = "json"
+	}
+	return
+}
+
+func levelFromEnv() (level zapcore.Level) {
+	v := os.Getenv("LOG_LEVEL")
+	if err := level.UnmarshalText([]byte(v)); err != nil {
+		level = zapcore.InfoLevel
+	}
+
+	return
 }
 
 func (o *options) apply(opts []Option) (err error) {
@@ -98,6 +118,14 @@ func WithLogResponses() Option {
 func WithCallerSkip(skip int) Option {
 	return func(o *options) error {
 		o.CallerSkip = skip
+		return nil
+	}
+}
+
+// WithLogLevel sets the verbosity of the logger.
+func WithLogLevel(level zapcore.Level) Option {
+	return func(o *options) error {
+		o.Level = level
 		return nil
 	}
 }

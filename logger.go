@@ -100,13 +100,13 @@ func New(name string, opts ...Option) (*Logger, error) {
 	// Logs info and debug to stdout
 	outWriter := zapcore.Lock(os.Stdout)
 	outLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl < zapcore.WarnLevel
+		return lvl >= o.Level && lvl < zapcore.WarnLevel
 	})
 
 	// Logs warning and errors to stderr
 	errWriter := zapcore.Lock(os.Stderr)
 	errLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= zapcore.WarnLevel
+		return lvl >= o.Level && lvl >= zapcore.WarnLevel
 	})
 
 	// Create zap.Logger
