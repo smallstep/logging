@@ -26,6 +26,53 @@ const (
 	FatalLevel
 )
 
+// MarshalText implements [encoding.TextMarshaler] for Level.
+func (l Level) MarshalText() ([]byte, error) {
+	return []byte(l.String()), nil
+}
+
+// String implements [fmt.Stringer] for Level.
+func (l Level) String() string {
+	switch l {
+	case DebugLevel:
+		return "debug"
+	case InfoLevel:
+		return "info"
+	case WarnLevel:
+		return "warn"
+	case ErrorLevel:
+		return "error"
+	case FatalLevel:
+		return "fatal"
+	default:
+		return fmt.Sprintf("Level(%d)", l)
+	}
+}
+
+func (l Level) toZapCoreLevel() zapcore.Level {
+	return zapcore.Level(l)
+}
+
+// UnmarshalText implements [encoding.TextUnmarshaler] for Level.
+func (l *Level) UnmarshalText(text []byte) error {
+	switch lit := strings.ToLower(string(text)); lit {
+	default:
+		return fmt.Errorf("invalid level: %q", lit)
+	case "debug":
+		*l = DebugLevel
+	case "info", "":
+		*l = InfoLevel
+	case "warn":
+		*l = WarnLevel
+	case "error":
+		*l = ErrorLevel
+	case "fatal":
+		*l = FatalLevel
+	}
+
+	return nil
+}
+
 // DefaultTraceHeader is the default header used as a trace id.
 const DefaultTraceHeader = "Traceparent"
 
@@ -97,16 +144,18 @@ func New(name string, opts ...Option) (*Logger, error) {
 		return nil, errors.Errorf("unsupported logger.format '%s'", o.Format)
 	}
 
+	minLogLevel := o.Level.toZapCoreLevel()
+
 	// Logs info and debug to stdout
 	outWriter := zapcore.Lock(os.Stdout)
 	outLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= o.Level && lvl < zapcore.WarnLevel
+		return lvl >= minLogLevel && lvl < zapcore.WarnLevel
 	})
 
 	// Logs warning and errors to stderr
 	errWriter := zapcore.Lock(os.Stderr)
 	errLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= o.Level && lvl >= zapcore.WarnLevel
+		return lvl >= minLogLevel && lvl >= zapcore.WarnLevel
 	})
 
 	// Create zap.Logger
