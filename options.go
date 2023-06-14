@@ -2,12 +2,14 @@ package logging
 
 import (
 	"encoding/json"
+	"os"
 
 	"github.com/pkg/errors"
 )
 
 type options struct {
 	Format       string `json:"format"`
+	Level        Level  `json:"level"`
 	TraceHeader  string `json:"traceHeader"`
 	LogRequests  bool   `json:"logRequests"`
 	LogResponses bool   `json:"logResponses"`
@@ -17,10 +19,27 @@ type options struct {
 
 func defaultOptions() *options {
 	return &options{
-		Format:      "json",
+		Format:      formatFromEnv(),
+		Level:       levelFromEnv(),
 		TraceHeader: DefaultTraceHeader,
 		CallerSkip:  1,
 	}
+}
+
+func formatFromEnv() (format string) {
+	if format = os.Getenv("LOG_FORMAT"); format == "" {
+		format = "json"
+	}
+	return
+}
+
+func levelFromEnv() (level Level) {
+	v := os.Getenv("LOG_LEVEL")
+	if err := level.UnmarshalText([]byte(v)); err != nil {
+		level = InfoLevel
+	}
+
+	return
 }
 
 func (o *options) apply(opts []Option) (err error) {
@@ -98,6 +117,15 @@ func WithLogResponses() Option {
 func WithCallerSkip(skip int) Option {
 	return func(o *options) error {
 		o.CallerSkip = skip
+		return nil
+	}
+}
+
+// WithLogLevel sets the verbosity of the logger.
+func WithLogLevel(level Level) Option {
+	return func(o *options) error {
+		o.Level = level
+
 		return nil
 	}
 }
