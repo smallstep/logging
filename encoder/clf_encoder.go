@@ -106,10 +106,10 @@ func (e *clfEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*
 }
 
 // Implementation of the zapcore.ObjectEncoder interface.
-func (e *clfEncoder) AddArray(key string, marshaler zapcore.ArrayMarshaler) error {
+func (e *clfEncoder) AddArray(string, zapcore.ArrayMarshaler) error {
 	return nil
 }
-func (e *clfEncoder) AddObject(key string, marshaler zapcore.ObjectMarshaler) error {
+func (e *clfEncoder) AddObject(string, zapcore.ObjectMarshaler) error {
 	return nil
 }
 
@@ -200,11 +200,11 @@ func (e *clfEncoder) AddUintptr(key string, value uintptr) { e.AddUint64(key, ui
 
 // AddReflected uses reflection to serialize arbitrary objects, so it can be
 // slow and allocation-heavy.
-func (e *clfEncoder) AddReflected(key string, value interface{}) error {
+func (e *clfEncoder) AddReflected(string, interface{}) error {
 	return nil
 }
 
 // OpenNamespace opens an isolated namespace where all subsequent fields will be
 // added. Applications can use namespaces to prevent key collisions when
 // injecting loggers into sub-components or third-party libraries.
-func (e *clfEncoder) OpenNamespace(key string) {}
+func (*clfEncoder) OpenNamespace(string) {}

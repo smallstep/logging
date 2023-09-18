@@ -176,7 +176,7 @@ func (e *textEncoder) AddUintptr(key string, value uintptr) { e.AddUint64(key, u
 
 // AddReflected uses reflection to serialize arbitrary objects, so it can be
 // slow and allocation-heavy.
-func (e *textEncoder) AddReflected(key string, value interface{}) error {
+func (e *textEncoder) AddReflected(_ string, value interface{}) error {
 	b, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -188,4 +188,4 @@ func (e *textEncoder) AddReflected(key string, value interface{}) error {
 // OpenNamespace opens an isolated namespace where all subsequent fields will be
 // added. Applications can use namespaces to prevent key collisions when
 // injecting loggers into sub-components or third-party libraries.
-func (e *textEncoder) OpenNamespace(key string) {}
+func (*textEncoder) OpenNamespace(string) {}
