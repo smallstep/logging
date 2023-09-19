@@ -116,7 +116,7 @@ func (e *objectEncoder) AddReflected(key string, value interface{}) error {
 // OpenNamespace opens an isolated namespace where all subsequent fields will
 // be added. Applications can use namespaces to prevent key collisions when
 // injecting loggers into sub-components or third-party libraries.
-func (e *objectEncoder) OpenNamespace(key string) {}
+func (*objectEncoder) OpenNamespace(string) {}
 
 func (e *objectEncoder) AddFloat32(key string, value float32) { e.AddFloat64(key, float64(value)) }
 func (e *objectEncoder) AddInt(key string, value int)         { e.AddInt64(key, int64(value)) }
