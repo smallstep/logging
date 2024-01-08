@@ -138,10 +138,10 @@ func New(name string, opts ...Option) (*Logger, error) {
 
 	var outEncoder, errEncoder zapcore.Encoder
 	switch strings.ToLower(o.Format) {
-	case "", "text":
+	case "", "text", "docker":
 		outEncoder = encoder.NewTextEncoder(config)
 		errEncoder = encoder.NewTextEncoder(config)
-	case "json":
+	case "json", "k8s", "kubernetes":
 		outEncoder = zapcore.NewJSONEncoder(config)
 		errEncoder = zapcore.NewJSONEncoder(config)
 	case "common":
