@@ -91,16 +91,21 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // writeEntry writes to the Logger writer the request information in the logger.
 func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration) {
 	ctx := r.Context()
-	var name, requestID, tracingID string
+	var name, requestID, legacyRequestID, tracingID string
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
 	} else {
 		name = l.name
 	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
-		requestID = tp.TraceID()
+		legacyRequestID = tp.TraceID()
 		tracingID = tp.String()
 	}
+
+	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
+	// by some (external) middleware, but we stil log the legacy request ID too, so
+	// it shouldn't be too big of an issue.
+	requestID = w.Header().Get("X-Request-Id")
 
 	// Remote hostname
 	addr, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -126,6 +131,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 		zap.String("name", name),
 		zap.String("system", "http"),
 		zap.String("request-id", requestID),
+		zap.String("request-id-legacy", legacyRequestID),
 		zap.String("tracing-id", tracingID),
 		zap.String("remote-address", addr),
 		zap.String("time", t.Format(l.timeFormat)),
