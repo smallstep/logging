@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/smallstep/logging"
+	"github.com/smallstep/logging/requestid"
 	"go.uber.org/zap"
 )
 
@@ -105,7 +106,7 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
 	// by some (external) middleware, but we stil log the legacy request ID too, so
 	// it shouldn't be too big of an issue.
-	requestID = w.Header().Get("X-Request-Id")
+	requestID = requestid.FromContext(ctx)
 
 	// Remote hostname
 	addr, _, err := net.SplitHostPort(r.RemoteAddr)
