@@ -50,21 +50,24 @@ func (l *serverLogger) Log(ctx context.Context, fullMethod string, t time.Time, 
 		service = parts[l-1]
 	}
 
-	var name, requestID, legacyRequestID, tracingID string
+	var name, requestID, tracingID string
+
+	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
+	// by some (external) middleware, but we stil log the legacy request ID too, so
+	// it shouldn't be too big of an issue.
+	requestID = requestid.FromContext(ctx)
+
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
 	} else {
 		name = l.name
 	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
-		legacyRequestID = tp.TraceID()
 		tracingID = tp.String()
+		if requestID == "" {
+			requestID = tp.TraceID()
+		}
 	}
-
-	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
-	// by some (external) middleware, but we stil log the legacy request ID too, so
-	// it shouldn't be too big of an issue.
-	requestID = requestid.FromContext(ctx)
 
 	fields := []zap.Field{
 		zap.String("name", name),
@@ -75,7 +78,6 @@ func (l *serverLogger) Log(ctx context.Context, fullMethod string, t time.Time, 
 		zap.String("grpc.method", method),
 		zap.String("grpc.code", code.String()),
 		zap.String("request-id", requestID),
-		zap.String("request-id-legacy", legacyRequestID),
 		zap.String("tracing-id", tracingID),
 		zap.String("time", t.Format(l.timeFormat)),
 		zap.Duration("durations", duration),
@@ -125,21 +127,24 @@ func (l *serverLogger) LogStream(ctx context.Context, fullMethod, msg string, ex
 		service = parts[l-1]
 	}
 
-	var name, requestID, legacyRequestID, tracingID string
+	var name, requestID, tracingID string
+
+	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
+	// by some (external) middleware, but we stil log the legacy request ID too, so
+	// it shouldn't be too big of an issue.
+	requestID = requestid.FromContext(ctx)
+
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
 	} else {
 		name = l.name
 	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
-		legacyRequestID = tp.TraceID()
 		tracingID = tp.String()
+		if requestID == "" {
+			requestID = tp.TraceID()
+		}
 	}
-
-	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
-	// by some (external) middleware, but we stil log the legacy request ID too, so
-	// it shouldn't be too big of an issue.
-	requestID = requestid.FromContext(ctx)
 
 	fields := []zap.Field{
 		zap.String("name", name),
@@ -149,7 +154,6 @@ func (l *serverLogger) LogStream(ctx context.Context, fullMethod, msg string, ex
 		zap.String("grpc.service", service),
 		zap.String("grpc.method", method),
 		zap.String("request-id", requestID),
-		zap.String("request-id-legacy", legacyRequestID),
 		zap.String("tracing-id", tracingID),
 	}
 
