@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/smallstep/logging"
+	"github.com/smallstep/logging/requestid"
 	"go.uber.org/zap"
 )
 
@@ -92,14 +93,22 @@ func (l *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Time, d time.Duration) {
 	ctx := r.Context()
 	var name, requestID, tracingID string
+
+	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
+	// by some (external) middleware, but we stil log the legacy request ID too, so
+	// it shouldn't be too big of an issue.
+	requestID = requestid.FromContext(ctx)
+
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
 	} else {
 		name = l.name
 	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
-		requestID = tp.TraceID()
 		tracingID = tp.String()
+		if requestID == "" {
+			requestID = tp.TraceID()
+		}
 	}
 
 	// Remote hostname

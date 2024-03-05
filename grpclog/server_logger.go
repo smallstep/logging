@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/smallstep/logging"
+	"github.com/smallstep/logging/requestid"
 )
 
 type serverLogger struct {
@@ -50,14 +51,22 @@ func (l *serverLogger) Log(ctx context.Context, fullMethod string, t time.Time, 
 	}
 
 	var name, requestID, tracingID string
+
+	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
+	// by some (external) middleware, but we stil log the legacy request ID too, so
+	// it shouldn't be too big of an issue.
+	requestID = requestid.FromContext(ctx)
+
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
 	} else {
 		name = l.name
 	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
-		requestID = tp.TraceID()
 		tracingID = tp.String()
+		if requestID == "" {
+			requestID = tp.TraceID()
+		}
 	}
 
 	fields := []zap.Field{
@@ -119,14 +128,22 @@ func (l *serverLogger) LogStream(ctx context.Context, fullMethod, msg string, ex
 	}
 
 	var name, requestID, tracingID string
+
+	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
+	// by some (external) middleware, but we stil log the legacy request ID too, so
+	// it shouldn't be too big of an issue.
+	requestID = requestid.FromContext(ctx)
+
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
 	} else {
 		name = l.name
 	}
 	if tp, ok := logging.GetTraceparent(ctx); ok {
-		requestID = tp.TraceID()
 		tracingID = tp.String()
+		if requestID == "" {
+			requestID = tp.TraceID()
+		}
 	}
 
 	fields := []zap.Field{
