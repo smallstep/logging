@@ -9,11 +9,12 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	panoramix "github.com/smallstep/panoramix/v4/requestid"
 
 	"github.com/smallstep/logging"
 	"github.com/smallstep/logging/requestid"
@@ -55,7 +56,10 @@ func (l *serverLogger) Log(ctx context.Context, fullMethod string, t time.Time, 
 	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
 	// by some (external) middleware, but we stil log the legacy request ID too, so
 	// it shouldn't be too big of an issue.
-	requestID = requestid.FromContext(ctx)
+	requestID = panoramix.FromContext(ctx)
+	if requestID == "" {
+		requestID = requestid.FromContext(ctx)
+	}
 
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
@@ -132,7 +136,10 @@ func (l *serverLogger) LogStream(ctx context.Context, fullMethod, msg string, ex
 	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
 	// by some (external) middleware, but we stil log the legacy request ID too, so
 	// it shouldn't be too big of an issue.
-	requestID = requestid.FromContext(ctx)
+	requestID = panoramix.FromContext(ctx)
+	if requestID == "" {
+		requestID = requestid.FromContext(ctx)
+	}
 
 	if s, ok := logging.GetName(ctx); ok {
 		name = s

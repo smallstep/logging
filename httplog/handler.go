@@ -9,6 +9,8 @@ import (
 	"github.com/smallstep/logging"
 	"github.com/smallstep/logging/requestid"
 	"go.uber.org/zap"
+
+	panoramix "github.com/smallstep/panoramix/v4/requestid"
 )
 
 type options struct {
@@ -97,7 +99,10 @@ func (l *LoggerHandler) writeEntry(w ResponseLogger, r *http.Request, t time.Tim
 	// Use (reflected) request ID for logging. It _could_ be empty if it wasn't set
 	// by some (external) middleware, but we stil log the legacy request ID too, so
 	// it shouldn't be too big of an issue.
-	requestID = requestid.FromContext(ctx)
+	requestID = panoramix.FromContext(ctx)
+	if requestID == "" {
+		requestID = requestid.FromContext(ctx)
+	}
 
 	if s, ok := logging.GetName(ctx); ok {
 		name = s
