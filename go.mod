@@ -1,7 +1,6 @@
 module github.com/smallstep/logging
 
-go 1.21
-toolchain go1.22.9
+go 1.22.7
 
 require (
 	github.com/pkg/errors v0.9.1
