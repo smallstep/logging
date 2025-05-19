@@ -2,12 +2,12 @@ module github.com/smallstep/logging
 
 go 1.23.0
 
-toolchain go1.23.7
+toolchain go1.23.8
 
 require (
 	github.com/pkg/errors v0.9.1
 	go.uber.org/zap v1.27.0
-	google.golang.org/grpc v1.72.0
+	google.golang.org/grpc v1.72.1
 	google.golang.org/protobuf v1.36.6
 )
 
