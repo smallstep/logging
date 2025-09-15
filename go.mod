@@ -7,7 +7,7 @@ toolchain go1.23.8
 require (
 	github.com/pkg/errors v0.9.1
 	go.uber.org/zap v1.27.0
-	google.golang.org/grpc v1.75.0
+	google.golang.org/grpc v1.75.1
 	google.golang.org/protobuf v1.36.8
 )
 
