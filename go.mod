@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/pkg/errors v0.9.1
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 )
