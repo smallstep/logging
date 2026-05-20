@@ -15,6 +15,5 @@ jobs:
     permissions:
       contents: read
       issues: write
-      pull-requests: write
     uses: smallstep/workflows/.github/workflows/triage.yml@main
     secrets: inherit
